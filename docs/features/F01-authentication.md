@@ -1,15 +1,14 @@
 # F01 — Authentication
 
-Status: specification only. First feature after Milestone 0.
-Read [MVP](../MVP.md) and [technical plan](../TECHNICAL_PLAN.md) first.
-This spec expands requirements recovered from the prior conversation; details
-marked proposed must be reconciled with the original documents when available.
+Status: implemented locally. Live Google verification requires OAuth configuration.
+Read [MVP](../MVP.md), [PRD](../PRD.md), and [technical plan](../TECHNICAL_PLAN.md).
 
 ## Objective and scope
 
-Provide Google sign-in, access denial, sign-out, and a minimal authenticated
-editor shell. Require a verified Google email with exact domain `anywhere.co`.
-Do not load GCS data or implement translation editing/publishing in this feature.
+Google sign-in is the gate in front of Editor and Releases. The account must
+be a verified Google email with the exact domain `anywhere.co`. The header
+shows Sign out, which clears the session and returns to sign-in. The session
+also expires and then returns to sign-in.
 
 ## Acceptance criteria
 
@@ -18,8 +17,9 @@ Do not load GCS data or implement translation editing/publishing in this feature
   email and other domains are rejected, including lookalike domains.
 - A client email claim or Google hosted-domain hint cannot grant access.
 - Protected server entry points independently enforce session authorization.
-- Sign-out invalidates the application session; canceled/failed sign-in offers
-  a safe retry without granting access.
+- The header shows Sign out. It clears the session and returns to sign-in.
+  An expired session returns to sign-in. Canceled or failed sign-in offers a
+  retry and does not grant access.
 - Tokens stay server-side. Errors and logs do not disclose credentials.
 
 ## Proposed implementation boundaries
@@ -27,12 +27,25 @@ Do not load GCS data or implement translation editing/publishing in this feature
 Routes remain under root `app/`; session/provider integration belongs in
 `src/lib/auth/`. Choose the auth library and session persistence, callback URL,
 cookie configuration, and expiry behavior before coding. Missing configuration
-fails closed when auth is invoked. F02 will determine GCS scopes/consent needs;
-F01 must not pretend successful login proves bucket access.
+fails closed when auth is invoked. Sign-in requests `openid email profile`
+only. Cloud Storage access is part of F10, and a successful login does not
+grant it.
 
 ## Verification
 
 Test allowed, unverified, missing, wrong-domain, and lookalike-domain identities;
-unauthenticated protected requests; sign-out; provider cancellation and expiry.
+unauthenticated protected requests; provider cancellation and session expiry.
 Use mocked provider behavior for automated tests. Run lint, typecheck, build,
 and relevant tests once the feature and test harness exist.
+
+## Implemented decisions
+
+Auth.js 5.0.0-beta.32 handles Google OIDC and encrypted cookie sessions. Sessions
+have an eight-hour absolute lifetime. The server requires a verified exact-domain
+Google email and discards provider tokens. Sign-in does not request Cloud
+Storage access. `/sign-in` handles denial and retry; `/editor` is an
+authenticated shell only. The header shows Sign out, which clears the session
+and returns to `/sign-in`.
+A reusable server authorization guard must be called by each future protected
+operation. See the root README for environment setup, cookie/revocation limits,
+verification commands, and the remaining live Google acceptance checklist.

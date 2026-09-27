@@ -12,9 +12,13 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
 
 # production
@@ -39,6 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local SQLite catalog
+/data/
 
 # Track the secret-free environment template only
 !.env.example
