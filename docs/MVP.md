@@ -1,62 +1,51 @@
-# Language Publisher — MVP
+# Anywhere String OTA — MVP
 
-Status: Milestone 0 foundation only.
+Status: the product screens are the Figma Editor and Releases frames. Live Google sign-in and a real Cloud Storage manifest still need credentials.
 
-## Provenance
+## Source of truth
 
-Reconstructed from the accessible “Vibe Coding Tools and Steps” conversation on
-2026-09-27. The earlier `Language_Publisher_MVP.md` download was named there but
-its body was not accessible. This is a working reconstruction, not a verbatim
-recovery. See [PRD.md](PRD.md) for source limitations and open product decisions.
+The Figma file `Language Publisher` (`2pvck0cpz7yrMN87e9ANfB`) decides which screens and controls exist. These documents follow that file.
 
-## Included features and implementation order
+## Included features
 
-| ID | Feature | Specification |
+| ID | Feature | Where it appears | Specification |
+| --- | --- | --- | --- |
+| F01 | Google sign-in for a verified Anywhere email | Sign-in gate | [Authentication](features/F01-authentication.md) |
+| F02 | SQLite working set | Behind both screens | [Database](features/F02-database.md) |
+| F03 | Import a CSV, Android strings file, or JSON language file | Editor, Import | [Import](features/F03-import.md) |
+| F04 | Show every language for one platform on each key card | Editor | [Show translations](features/F04-show-translations.md) |
+| F05 | Save one changed value | Editor, Save | [Edit a value](features/F05-edit-value.md) |
+| F06 | Search keys or values | Editor search | [Search](features/F06-search.md) |
+| F07 | Add a language to the platform on screen | Editor | [Add a language](features/F07-add-language.md) |
+| F08 | Add a key on the platform on screen | Editor, Add key | [Add a key](features/F08-add-key.md) |
+| F11 | Freeze a release and choose which one is served | Releases | [Releases](features/F11-releases.md) |
+| F12 | Choose the import language from the catalog | Import dialog | [Import a language](features/F12-import-language.md) |
+| F13 | Select keys and delete them from the working set | Editor checkboxes | [Delete keys](features/F13-delete-keys.md) |
+| F14 | Download a release as JSON | Releases, Download | [Download a release](features/F14-download-release.md) |
+| F15 | Access list of admins and users | Access | [Access](features/F15-access.md) |
+| F16 | Supported languages. Add language opens this dialog | Editor | [Supported languages](features/F16-supported-languages.md) |
+
+## Not in the Figma
+
+These are not current product features. Do not add them back unless the Figma changes.
+
+| ID | Removed control | Why |
 | --- | --- | --- |
-| F01 | Google authentication and verified Anywhere email restriction | [Authentication](features/F01-authentication.md) |
-| F02 | Load Android manifest and language data through the server | [Load language data](features/F02-load-language-data.md) |
-| F03 | Edit existing translations and derive changed state | [Editor](features/F03-editor.md) |
-| F04 | Search and changed-only filtering | [Search](features/F04-search.md) |
-| F05 | Review changes and explicitly confirm publishing | [Publish confirmation](features/F05-publish-confirmation.md) |
-| F06 | Server-controlled validation, hashing, uploads, and manifest update | [Safe publish](features/F06-safe-publish.md) |
+| F09 | Editable build snapshot | Create release freezes the working set. There is no snapshot to edit. |
+| F10 | Publish button on the editor | Served, on Releases, is the manifest update. The file format stays in [F10](features/F10-publish.md). |
 
-Only implement the feature requested in the current task. F01 is the first
-implementation milestone after the foundation; it does not include GCS access.
+F15 is a product feature. Its control is specified in that file. The current Figma frames do not show it. F07 is not a control on the Editor. F08 is Add key on the Editor. The current Figma frames do not show that button.
 
-## Excluded
+The header includes Sign out. It clears the session and returns to the sign-in page. The session still expires, and the sign-in page remains the gate.
 
-- Adding keys or languages.
-- iOS support.
-- Audit history and rollback.
-- Automatic translation and placeholder validation.
-- Advanced conflict merging.
+## Future iteration
 
-## Milestone 0 deliverables
+Not part of these screens. See the [PRD](PRD.md): placeholder validation and conflict merging. Adding a language, including AI translated, is [F16](features/F16-supported-languages.md).
 
-- PRD reconstruction, MVP reconstruction, technical plan, and F01–F06 specs.
-- Project agent instructions and a secret-free environment template.
-- Tracked placeholder folders for common/publisher components, feature logic,
-  auth/GCS adapters, server orchestration, unit tests, and end-to-end tests.
-- Preserve the existing Next.js scaffold, dependency versions, root `app/`,
-  import aliases, lockfile, and starter page.
-- Run existing lint/build checks where practical; report environmental failures.
+## Stack
 
-No authentication, editor UI, API routes, GCS integration, dependency installation,
-deployment, or live publishing belongs to this milestone.
+Next.js App Router, React, TypeScript, Tailwind CSS, ESLint, Auth.js, Vitest, shadcn/ui, SQLite, and Cloud Storage for release files and the production manifest.
 
-## Planned stack
+## Completion
 
-Existing: Next.js App Router, React, TypeScript, Tailwind CSS, ESLint.
-Planned for later features: shadcn/ui, Google OAuth, GCS, Vitest, Playwright.
-The OAuth/session library and storage integration details remain to be selected.
-Do not treat planned libraries as installed or configured.
-
-## MVP completion criteria
-
-An authorized user can load Android translations, edit existing values, search
-and review all changes, and safely publish changed languages. Reverted values
-are not published. Unauthorized, stale, concurrent, and failed publish attempts
-are covered by meaningful tests. The existing Android client can consume the
-resulting manifest and language files without a format migration being assumed.
-
-These are future acceptance criteria, not claims about Milestone 0 functionality.
+An authorized user can import, view, edit, search, add a language, add a key, and delete keys on the Editor screen, then create a release, download it, and set it as production on the Releases screen. An admin can manage who is listed on Access. A failed production change leaves the previous manifest in place.

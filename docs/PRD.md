@@ -1,72 +1,43 @@
-# Language Publisher — Product Requirements
+# Anywhere String OTA
 
-Status: reconstructed draft for Milestone 0; product features are not implemented.
+Anywhere String OTA is the internal app where Anywhere staff edit Android and iOS strings and publish them for the mobile SDKs.
 
-## Source and authority
+## Problem
 
-The original PRD was not available in the local project or the accessible history of
-the ChatGPT conversation “Vibe Coding Tools and Steps”
-(`6ab8d3cb-2e34-83e8-a24d-6f310d059171`, retrieved 2026-09-27).
-That history names previously generated MVP and technical-plan downloads, but does
-not expose their complete contents or downloadable attachments. This document
-records the requirements visible in that history; it is not a copy of the original
-PRD. Reconcile it with the original documents when available. Unconfirmed design
-details are explicitly identified below and in the technical plan.
+Mobile SDKs download language files from Google Cloud Storage. Staff need one place to change those strings, freeze a release, and choose which release each platform serves.
 
-## Problem and intended users
+Staff edit a working copy. A release is a frozen copy of one platform’s saved strings. The production release is the copy the SDKs read.
 
-Language Publisher is an internal web application for authorized Anywhere staff
-to edit existing Android OTA translations and publish language JSON files to
-Google Cloud Storage (GCS). The workflow must preserve unchanged translations and
-avoid announcing a release before its language files are ready.
+## Users
 
-## Confirmed workflow
+Anywhere staff who sign in with a verified @anywhere.co Google account and are listed in Access. An admin manages that list. A user can edit and publish. Sign-in is the gate in front of the app.
 
-1. Sign in with Google using a verified `@anywhere.co` email address.
-2. Load Android language data and its manifest.
-3. Edit existing translations; preserve original values for change detection.
-4. Search and filter to changed translations.
-5. Review changes in a publish confirmation step.
-6. Publish through the server, which validates access and manifest version, builds
-   complete changed-language files, serializes them, computes SHA-256, uploads
-   those files, and updates the manifest last.
+## Editor
 
-The browser submits edits, never an authoritative checksum or final publish file.
-Returning a value to its original value removes it from the change set.
+The editor opens on All, which lists every saved key. The platform menu can narrow that list to iOS or Android. A key stored on both platforms is two cards, and each card shows that platform’s icon.
 
-## MVP scope
+- Add language chooses a missing language, then Import or AI translated. AI translated is the default. The language is written for Android and iOS.
+- Import adds a CSV, Android strings file, or JSON language file for the platform in the menu. All uses the platform last chosen there, or Android until one is chosen.
+- Add key creates one key on that same platform. The value is saved as English. AI translation is on by default and fills the other languages. Turning it off leaves those languages empty. Import can still create keys from a file.
+- Each key is one card. Every language for that platform appears on the card.
+- Search matches a key or a value. Aa makes the search case sensitive. Exact match keeps a card only when the key or a translation equals the whole query, and drops values that only contain it. The count inside the field is the number of matching cards. Filter can limit the list to empty values or unsaved edits. Sort orders the cards by key name or by last modified.
+- Checked keys can be deleted. Existing releases stay as they were.
+- Save writes one changed value. An empty value shows the placeholder Empty.
 
-See [MVP.md](MVP.md) for scope and [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md)
-for implementation boundaries. Features are specified independently under
-`docs/features/` and implemented in order, only when requested.
 
-Excluded: adding keys, adding languages, iOS, audit history, rollback, automatic
-translation, placeholder validation, and advanced conflict merging.
 
-## Proposed acceptance and reliability requirements
+## Releases
 
-- Unauthorized or unverified users cannot load or publish data.
-- Loading or publishing failures are visible and retain recoverable local edits.
-- A stale edit session cannot silently overwrite a newer published manifest.
-- A failed upload cannot expose an incomplete release to Android clients.
-- Publish success is shown only after the manifest commit is confirmed.
-- Search, filters, and confirmation do not modify translations.
-- No OAuth tokens, service-account keys, or other secrets are exposed in the UI,
-  committed to Git, or included in logs.
+- Create release freezes the saved strings for one platform. The release already being served stays in place.
+- Create release stays unavailable while a value is unsaved.
+- The list filters to All, Android, or iOS.
+- Each row shows the name, platform, version, created date, Download, and Served.
+- Download returns the language files frozen on that release.
+- Served chooses an existing release for that platform. The other platform stays as it is.
+- If that change fails, the previous production release stays in place.
 
-These acceptance details elaborate the confirmed workflow; they must be checked
-against the original PRD before affected feature implementation.
 
-## Decisions still required
 
-- Actual manifest and language JSON examples, object paths, version fields,
-  locale identifiers, checksum encoding, and Android reader behavior.
-- Whether English/reference values are editable and how missing or empty values
-  are represented; do not assume these are interchangeable.
-- GCS bucket/environment, user IAM permissions, OAuth consent/scopes, and token
-  refresh/session requirements.
-- A publish protocol compatible with the Android client that preserves old
-  releases during upload failure or concurrent publishing.
-- Deployment target, data-size limits, and any additional authorization policy.
+## Future iteration
 
-No numerical success targets or deployment commitments were recovered.
+Automatic translation with help of AI, placeholder validation, and conflict merging, Enabling language from OTA.
