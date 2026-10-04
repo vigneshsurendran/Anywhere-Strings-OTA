@@ -92,3 +92,61 @@ Before deployment, use configured Google credentials to verify:
 
 Feature specifications: [MVP](docs/MVP.md), [technical plan](docs/TECHNICAL_PLAN.md),
 and `docs/features/`.
+
+## Hosting
+
+GitHub Actions verifies every pull request and every push to `main`. A push to
+`main` then builds the container and deploys one Cloud Run service,
+`anywhere-strings-ota`. Pull requests are not deployed.
+
+The service keeps the SQLite working set on its disk at
+`/data/publisher.sqlite`. On startup it restores
+`gs://$GCS_BUCKET/_publisher/working-set.sqlite` when that object exists, and
+it copies the database back there while running and again on shutdown. A deploy
+can drop edits that were still only on the instance being replaced. Language
+files stay under `android/` and `ios/`; the replica object is not one of them.
+Cloud Run runs a single instance so two deploys cannot overwrite that object.
+
+One-time Google Cloud setup, with the project id and bucket filled in:
+
+```sh
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com iam.googleapis.com
+gcloud iam service-accounts create publisher-runtime --display-name "Anywhere String OTA runtime"
+gcloud iam service-accounts create publisher-deploy --display-name "Anywhere String OTA deploy"
+gcloud storage buckets add-iam-policy-binding "gs://BUCKET" \
+  --member="serviceAccount:publisher-runtime@PROJECT.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+gcloud projects add-iam-policy-binding PROJECT \
+  --member="serviceAccount:publisher-deploy@PROJECT.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+gcloud projects add-iam-policy-binding PROJECT \
+  --member="serviceAccount:publisher-deploy@PROJECT.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.admin"
+gcloud iam service-accounts add-iam-policy-binding \
+  publisher-runtime@PROJECT.iam.gserviceaccount.com \
+  --member="serviceAccount:publisher-deploy@PROJECT.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+gcloud iam service-accounts keys create /tmp/publisher-deploy.json \
+  --iam-account="publisher-deploy@PROJECT.iam.gserviceaccount.com"
+```
+
+Add these GitHub Actions secrets on the repository. Do not commit the key file;
+delete `/tmp/publisher-deploy.json` after the secret is saved.
+
+| Secret | Value |
+| --- | --- |
+| `GCP_PROJECT_ID` | Google Cloud project id |
+| `GCP_SA_KEY` | Contents of the deploy key file |
+| `GCP_RUNTIME_SERVICE_ACCOUNT` | `publisher-runtime@PROJECT.iam.gserviceaccount.com` |
+| `GCP_REGION` | Optional. Defaults to `us-central1` |
+| `GOOGLE_CLIENT_ID` | OAuth web client id |
+| `GOOGLE_CLIENT_SECRET` | OAuth web client secret |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `GCS_BUCKET` | Publish bucket name |
+| `AUTH_ADMIN_EMAILS` | Comma-separated verified `@anywhere.co` admin emails |
+| `GOOGLE_CLOUD_PROJECT` | Optional. Defaults to `GCP_PROJECT_ID` for translation |
+
+After the first successful Host job, add the redirect URI printed in the job
+summary, `https://YOUR_SERVICE/api/auth/callback/google`, to that OAuth client.
+Production sign-in stays limited to verified `@anywhere.co` accounts that are
+on the Access list.

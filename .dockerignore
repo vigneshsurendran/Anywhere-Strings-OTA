@@ -1,0 +1,17 @@
+node_modules
+.next
+.next-e2e
+.git
+data
+coverage
+test-results
+playwright-report
+blob-report
+out
+build
+.env
+.env.*
+*.pem
+*.tsbuildinfo
+Dockerfile
+.dockerignore

@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: verify-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: ./node_modules/.bin/tsc --noEmit --incremental false
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  deploy:
+    name: Host
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require hosting secrets
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          GCP_RUNTIME_SERVICE_ACCOUNT: ${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          AUTH_ADMIN_EMAILS: ${{ secrets.AUTH_ADMIN_EMAILS }}
+        run: |
+          missing=0
+          require() {
+            if [ -z "$2" ]; then
+              echo "::error::Add GitHub Actions secret $1. See the Hosting section of README.md."
+              missing=1
+            fi
+          }
+          require GCP_PROJECT_ID "$GCP_PROJECT_ID"
+          require GCP_SA_KEY "$GCP_SA_KEY"
+          require GCP_RUNTIME_SERVICE_ACCOUNT "$GCP_RUNTIME_SERVICE_ACCOUNT"
+          require GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+          require GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+          require AUTH_SECRET "$AUTH_SECRET"
+          require GCS_BUCKET "$GCS_BUCKET"
+          require AUTH_ADMIN_EMAILS "$AUTH_ADMIN_EMAILS"
+          exit "$missing"
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and push the image
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ secrets.GCP_REGION }}
+        run: |
+          region="${GCP_REGION:-us-central1}"
+          image="${region}-docker.pkg.dev/${GCP_PROJECT_ID}/publisher/anywhere-strings-ota:${GITHUB_SHA}"
+          gcloud auth configure-docker "${region}-docker.pkg.dev" --quiet
+          docker build -t "$image" .
+          docker push "$image"
+          echo "IMAGE=${image}" >> "$GITHUB_ENV"
+          echo "GCP_REGION=${region}" >> "$GITHUB_ENV"
+      - name: Deploy Cloud Run
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_RUNTIME_SERVICE_ACCOUNT: ${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          AUTH_ADMIN_EMAILS: ${{ secrets.AUTH_ADMIN_EMAILS }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        run: bash scripts/deploy-cloud-run.sh

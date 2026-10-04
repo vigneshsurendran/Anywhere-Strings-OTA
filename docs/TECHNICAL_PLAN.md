@@ -91,10 +91,13 @@ copy the template to an ignored `.env.local` at the project root.
 | AUTH_ALLOWED_DOMAIN | Intended exact domain restriction, initially anywhere.co |
 | AUTH_ADMIN_EMAILS | Comma-separated verified anywhere.co emails kept as admins by F15. |
 | GCS_BUCKET | Cloud Storage bucket name used when publishing. Credentials stay outside this file. |
+| PUBLISHER_DATABASE_PATH | SQLite file. The hosted container uses `/data/publisher.sqlite`. |
+| PUBLISHER_REPLICA | `gcs` in production. The working set is copied to `_publisher/working-set.sqlite` in `GCS_BUCKET`, outside the `android/` and `ios/` prefixes. |
 Do not add `NEXT_PUBLIC_` to secrets or expose Google tokens to client JavaScript.
 Do not store service-account JSON or access tokens in the example file. Bucket
-settings return with F10. OAuth callback, session storage, and deployment remain
-unconfigured; there are no production defaults.
+settings return with F10. GitHub Actions runs the verification commands and, on
+`main`, publishes one Cloud Run instance. That instance is the only writer of
+the working-set replica. There is no second production host.
 
 ## Verification and milestones
 
