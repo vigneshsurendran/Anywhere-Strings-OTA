@@ -23,6 +23,17 @@ function renderAccess(
 }
 
 describe("access screen", () => {
+  it("shows Save only after the role changes", async () => {
+    renderAccess();
+    const user = userEvent.setup();
+    const row = screen.getByRole("row", { name: /editor@anywhere.co/ });
+    expect(within(row).queryByRole("button", { name: "Save" })).toBeNull();
+    await user.selectOptions(within(row).getByLabelText("Role for editor@anywhere.co"), "admin");
+    expect(within(row).getByRole("button", { name: "Save" })).toBeTruthy();
+    await user.selectOptions(within(row).getByLabelText("Role for editor@anywhere.co"), "user");
+    expect(within(row).queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
   it("asks before removing someone and does nothing on cancel", async () => {
     const remove = vi.fn(async (): Promise<ActionResult> => ({ ok: true, message: "Removed editor@anywhere.co." }));
     renderAccess(remove);
