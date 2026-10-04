@@ -40,9 +40,10 @@ function cardLanguages(page: Page, platform: "android" | "ios", key: string) {
 async function showPlatform(page: Page, name: "All" | "Android" | "iOS") {
   const value = name === "All" ? "all" : name === "iOS" ? "ios" : "android";
   const select = page.getByLabel("Platform", { exact: true });
+  await expect(select).toBeVisible();
   await expect(async () => {
     if ((await select.inputValue()) !== value) await select.selectOption({ label: name });
-    await expect(select).toHaveValue(value);
+    await expect(select).toHaveValue(value, { timeout: 1_000 });
   }).toPass({ timeout: 15_000 });
 }
 
