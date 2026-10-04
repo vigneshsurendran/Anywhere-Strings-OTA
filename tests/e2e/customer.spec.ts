@@ -348,6 +348,7 @@ test("an admin manages access, and a user cannot open it", async ({ page, browse
   await expect(page.getByRole("cell", { name: "person@anywhere.co" })).toBeVisible();
 
   const editor = page.getByRole("row", { name: /editor@anywhere.co/ });
+  await expect(editor.getByRole("button", { name: "Save" })).toHaveCount(0);
   await editor.getByLabel("Role for editor@anywhere.co").selectOption("admin");
   await editor.getByRole("button", { name: "Save" }).click();
   const promote = page.getByRole("dialog", { name: "Change role" });
@@ -362,6 +363,7 @@ test("an admin manages access, and a user cannot open it", async ({ page, browse
   await demote.getByRole("button", { name: "Change role" }).click();
   await expect(demote).toBeHidden();
   await expect(editor.getByLabel("Role for editor@anywhere.co")).toHaveValue("user");
+  await expect(editor.getByRole("button", { name: "Save" })).toHaveCount(0);
 
   const context = await browser.newContext();
   const userPage = await context.newPage();

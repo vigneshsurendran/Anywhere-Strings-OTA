@@ -84,8 +84,7 @@ export function AccessScreen({ people, addAction, roleAction, removeAction }: {
         <TableHeader>
           <TableRow>
             <TableHead>Email</TableHead>
-            <TableHead className="w-40">Role</TableHead>
-            <TableHead className="w-28" />
+            <TableHead><span className="block text-right">Role</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -145,18 +144,30 @@ function AccessRowForm({ person, roleAction, removeAction }: {
       <TableCell>{person.email}</TableCell>
       <TableCell>
         <form
-          className="flex items-center gap-2"
+          className="flex items-center justify-end gap-2"
           onSubmit={(event) => {
             event.preventDefault();
+            if (!roleChanged) return;
             setRoleNotice(null);
             setRoleSession((current) => current + 1);
             setRoleOpen(true);
           }}
         >
           <RoleSelect value={nextRole} onValueChange={setNextRole} label={`Role for ${person.email}`} className="h-8 w-28" />
-          <Button type="submit" size="sm" variant="outline">Save</Button>
+          {roleChanged ? <Button type="submit" size="sm" variant="outline">Save</Button> : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setRemoveSession((current) => current + 1);
+              setRemoveOpen(true);
+            }}
+          >
+            Remove
+          </Button>
         </form>
-        <FormMessage state={roleNotice} />
+        {roleNotice ? <div className="mt-2 text-right"><FormMessage state={roleNotice} /></div> : null}
         {roleOpen ? <ActionDialog
           key={`role-${roleSession}`}
           open={roleOpen}
@@ -174,19 +185,6 @@ function AccessRowForm({ person, roleAction, removeAction }: {
             setRoleOpen(false);
           }}
         /> : null}
-      </TableCell>
-      <TableCell>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setRemoveSession((current) => current + 1);
-            setRemoveOpen(true);
-          }}
-        >
-          Remove
-        </Button>
         {removeOpen ? <ActionDialog
           key={`remove-${removeSession}`}
           open={removeOpen}
