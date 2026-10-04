@@ -93,6 +93,17 @@ Before deployment, use configured Google credentials to verify:
 Feature specifications: [MVP](docs/MVP.md), [technical plan](docs/TECHNICAL_PLAN.md),
 and `docs/features/`.
 
+## Changes
+
+Work lands through a pull request. `main` does not take a direct push. GitHub
+Actions runs **Verify** on the pull request. After it passes, merge the pull
+request. That merge runs **Verify** again and then **Host**, which deploys the
+merged commit. A pull request is not deployed.
+
+GitHub will not let the author of a pull request approve it. This repository
+has one collaborator, so a second approval is not required. Review the diff,
+then merge it once Verify is green.
+
 ## Hosting
 
 GitHub Actions verifies every pull request and every push to `main`. A push to
